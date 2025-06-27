@@ -109,13 +109,13 @@ void Track_Logic(void) {
     uint8_t right= HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_1);
     if (mid == 0&&right==1&&left==1) {
         car_forward();
-    } else if ( right == 0&&mid==1&&left==1) {
+    } else if ( right == 0&&left==1&&mid==1) {
         car_right();
     } else if (right == 1 && left == 0&&mid==1) {
         car_left();
  } 
 		
- else if (mid==1&&left==1&&right==1) {
+ else if (mid==1||left==1||right==1) {
        car_stop();
     }
 }
