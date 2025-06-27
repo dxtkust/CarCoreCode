@@ -57,7 +57,6 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-// #define STM32F103xB  // 已在工程其他地方定义，无需重复定义
 
 /* USER CODE BEGIN Private defines */
 
