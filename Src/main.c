@@ -62,6 +62,7 @@ void car_left(void);
 void car_right(void);
 void car_stop(void);
 void Track_Logic(void);
+void Motor_Test(void); // 电机测试函数声明
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -130,10 +131,19 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
             case 'R': if(mode==0) car_right(); break;
             case 'S': if(mode==0) car_stop(); break;
             case 'M': mode = !mode; break; // 模式切换
-            default: if(mode==0) car_stop(); break;
+            default: if(mode==0) ; break;
         }
         HAL_UART_Receive_IT(&huart2, &RX_BUFF, 1);
     }
+}
+
+// 电机测试函数：依次前进、后退、左转、右转、停止，每步1秒
+void Motor_Test(void) {
+    car_forward(); HAL_Delay(1000);
+    car_back();    HAL_Delay(1000);
+    car_left();    HAL_Delay(1000);
+    car_right();   HAL_Delay(1000);
+    car_stop();    HAL_Delay(1000);
 }
 /* USER CODE END 0 */
 
@@ -154,7 +164,9 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+    HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
+    HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
+    HAL_UART_Receive_IT(&huart2, &RX_BUFF, 1);
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -170,20 +182,22 @@ int main(void)
   MX_TIM4_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-    HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
-    HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
-    HAL_UART_Receive_IT(&huart2, &RX_BUFF, 1);
+    //Motor_Test(); // 上电后自动测试电机
+    // 让小车前进3秒，后退3秒，停止
+    car_forward();
+    HAL_Delay(3000);
+    car_back();
+    HAL_Delay(3000);
+    car_stop();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    if(mode == 1)
-    {
-        Track_Logic(); // 只在循迹模式下执行
-    }
-    // 遥控模式下什么都不用做，动作由串口回调控制
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
 }
