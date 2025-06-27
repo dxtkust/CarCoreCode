@@ -19,10 +19,10 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "tim.h"
+#include "usart.h"
 #include "gpio.h"
-#include <stdint.h>
-#include "stm32f1xx_hal.h"
-
+uint8_t RX_BUFF =0;
+uint8_t mode =0;
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -63,8 +63,8 @@ void car_forward(void) {
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_SET);
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET);
-    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 500);
-    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 485);
+    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 400); // 稍快
+    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 380);
 }
 // 小车后退
 void car_back(void) {
@@ -72,8 +72,8 @@ void car_back(void) {
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_SET);
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_RESET);
-    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 400);
-    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 400);
+    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 350);
+    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 350);
 }
 // 小车左转
 void car_left(void) {
@@ -81,8 +81,8 @@ void car_left(void) {
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_SET);
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET);
-    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 300);
-    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 700);
+    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 250);
+    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 500);
 }
 // 小车右转
 void car_right(void) {
@@ -90,8 +90,8 @@ void car_right(void) {
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_SET);
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET);
-    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 700);
-    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 300);
+    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 500);
+    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 250);
 }
 // 小车停止
 void car_stop(void) {
@@ -107,16 +107,19 @@ void Track_Logic(void) {
     uint8_t left = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4);
     uint8_t mid  = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_5);
     uint8_t right= HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_1);
-    if (mid == 0&&right==1&&left==1) {
-        car_forward();
-    } else if ( right == 0&&left==1&&mid==1) {
-        car_right();
-    } else if (right == 1 && left == 0&&mid==1) {
+    // 优先处理急转弯
+    if (left == 0 && mid == 0) {
+        car_left(); // 左急转
+    } else if (right == 0 && mid == 0) {
+        car_right(); // 右急转
+    } else if (left == 0 && mid == 1 && right == 1) {
         car_left();
- } 
-		
- else if (mid==1||left==1||right==1) {
-       car_stop();
+    } else if (right == 0 && mid == 1 && left == 1) {
+        car_right();
+    } else if (mid == 0 && left == 1 && right == 1) {
+        car_forward();
+    } else if (mid == 1 && left == 1 && right == 1) {
+        car_stop();
     }
 }
 // 串口接收回调
@@ -128,8 +131,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
         {
             case 'F': if(mode==0) car_forward(); break;
             case 'B': if(mode==0) car_back(); break;
-            case 'L': if(mode==0) car_left(); break;
-            case 'R': if(mode==0) car_right(); break;
+            case 'R': if(mode==0) car_left(); break;
+            case 'L': if(mode==0) car_right(); break;
             case 'S': if(mode==0) car_stop(); break;
             case 'M': mode = !mode; break; // 模式切换
             default: break;
@@ -168,29 +171,23 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_USART1_UART_Init();
   MX_TIM4_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-    HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
-    HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
-
-    // 让小车前进
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET);
-    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 500);
-    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 500);
-
-    while (1)
-    {
-        // 一直前进
-    }
+  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
+  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
+  HAL_UART_Receive_IT(&huart2, &RX_BUFF, 1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    if(mode == 1) {
+        Track_Logic();
+    }
+    HAL_Delay(10);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
